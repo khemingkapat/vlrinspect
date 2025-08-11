@@ -23,11 +23,16 @@ def get_upcoming_matches(
             match_link = str(element.attributes["href"])
 
             if len(team_name_divs) == 2:
+                team_a = team_name_divs[0].text(strip=True)
+                team_b = team_name_divs[1].text(strip=True)
+
+                if team_a == "TBD" or team_b == "TBD":
+                    continue
 
                 upcoming_matches_data.append(
                     {
-                        "team_a": team_name_divs[0].text(strip=True),
-                        "team_b": team_name_divs[1].text(strip=True),
+                        "team_a": team_a,
+                        "team_b": team_b,
                         "link": url + match_link,
                     }
                 )
