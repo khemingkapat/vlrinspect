@@ -1,10 +1,8 @@
+from numpy import select
 import streamlit as st
 from scraper import Scraper
 import requests
 import time
-from selectolax.parser import HTMLParser
-
-from scraper.history import get_team_history
 
 url = "https://www.vlr.gg/"
 
@@ -39,19 +37,13 @@ if match_data:
         index=0,
     )
 
-    if selected_match_name != "Select Your Match":
-        selected_link = link_map.get(selected_match_name, "")
-        st.info(f"Selected match link: {selected_link}")
+if selected_match_name != "Select Your Match":
+    selected_link = link_map.get(selected_match_name, "")
+    st.info(f"Selected match link: {selected_link}")
 
-        # --- This is the key change ---
-        # The scraping logic for the next parts now only runs if a link is selected.
-        try:
-            team1, team2 = Scraper.get_teams_from_match(session, selected_link)
-            Scraper.get_team_history(session, team1)
-            Scraper.get_team_history(session, team2)
-            st.success("Successfully scraped team history!")
-        except Exception as e:
-            st.error(f"An error occurred while scraping match details: {e}")
+    Scraper.get_team_history(session, selected_link)
 
-else:
-    st.info("No upcoming matches found or an error occurred. Please try again later.")
+    # team1, team2 = Scraper.get_teams_from_match(session, selected_link)
+    # print(team1, team2)
+    # team1_history = Scraper.get_team_history(session, team1, head=5)
+    # Scraper.scrape_match_info(session, team1_history[0])
