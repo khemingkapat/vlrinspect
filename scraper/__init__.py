@@ -12,13 +12,21 @@ class Scraper:
 
     @staticmethod
     def get_team_history(
-        _session: requests.Session, match_url: str, url: str = "https://www.vlr.gg/"
+        _session: requests.Session,
+        match_url: str,
+        head: int = -1,
+        url: str = "https://www.vlr.gg/",
     ):
         team1, team2 = get_teams_from_match(_session, match_url)
-        team1_hist_list, team_1_abbr = get_team_history_list(_session, team1, head=1)
-        team2_hist_list, team_2_abbr = get_team_history_list(_session, team2, head=1)
+        team1_hist_list, team_1_abbr = get_team_history_list(_session, team1, head=head)
+        team2_hist_list, team_2_abbr = get_team_history_list(_session, team2, head=head)
+        # print(team1_hist_list)
+        # print(team2_hist_list)
 
         team_abbr = team_1_abbr | team_2_abbr
+        # print(team_abbr)
 
-        scrape_matches(_session, team1_hist_list, team_abbr)
-        scrape_matches(_session, team2_hist_list, team_abbr)
+        team1_hist = scrape_matches(_session, team1_hist_list, team_abbr)
+        team2_hist = scrape_matches(_session, team2_hist_list, team_abbr)
+        print(team1_hist)
+        print(team2_hist)
