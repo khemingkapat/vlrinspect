@@ -1,4 +1,3 @@
-from numpy import select
 import streamlit as st
 from scraper import Scraper
 import requests
