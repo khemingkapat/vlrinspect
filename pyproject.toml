@@ -15,3 +15,7 @@ dependencies = [
     "selectolax>=0.3.32",
     "streamlit>=1.48.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
