@@ -6,7 +6,7 @@ class Game(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     map_name: str
     game_id: str
-    map_winner: str
+    winner: str
 
     round_result: pd.DataFrame
     overview: pd.DataFrame
