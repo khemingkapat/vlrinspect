@@ -1,26 +1,26 @@
 import re
 import pandas as pd
 from selectolax.parser import HTMLParser
+import numpy as np
 
 re_strip = lambda sp, st: sp.join(
     re.findall("\S+", st)
 )  # function for normal regex by finding all char
 
 
-# def get_full_name(abbr: str, full_names: list[str]) -> str:
-#     for name in full_names:
-#         if abbr.lower() == name.lower() or abbr.lower() in name.lower():
-#             return name
-#
-#         checked_idx = 0
-#         for char in name:
-#             if char.lower() == abbr[checked_idx].lower():
-#                 checked_idx += 1
-#
-#         if checked_idx == len(abbr):
-#             return name
-#
-#     return ""
+def vectorized_lookup(df: pd.DataFrame, selector_column: str, target_suffix: str):
+    target_column_names = df[selector_column] + target_suffix
+
+    target_columns = [col for col in df.columns if col.endswith(target_suffix)]
+
+    column_name_to_index = {col: i for i, col in enumerate(target_columns)}
+
+    column_indices = target_column_names.map(column_name_to_index)
+
+    target_values = df[target_columns].values
+    row_indices = np.arange(len(df))
+
+    return target_values[row_indices, column_indices]
 
 
 def detect_type(value: str):
