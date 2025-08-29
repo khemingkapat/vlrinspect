@@ -2,10 +2,9 @@ import requests
 from selectolax.parser import HTMLParser
 import pandas as pd
 from datetime import datetime
-from utils import detect_type,vectorized_lookup
-from models import Match, MatchHistory
+from utils import detect_type, vectorized_lookup
+from models import Match, MatchHistory, Game
 from typing import Optional
-
 
 
 def get_team_history_list(
@@ -90,9 +89,7 @@ def extract_round_result_from_html(
             winner = round.css_first("div.rnd-sq.mod-win")
             if winner is None:
                 continue
-            winning_side = ["atk", "def"][
-                "mod-ct" in winner.attributes.get("class")
-            ]
+            winning_side = ["atk", "def"]["mod-ct" in winner.attributes.get("class")]
 
             current_score = round.attributes["title"]
 
@@ -133,12 +130,13 @@ def extract_round_result_from_html(
         data, columns=["phase", "round_num", "winning_side", "reason", "current_score"]
     )
 
-
     round_result.loc[:, "game_id"] = [game_id] * len(round_result)
     round_result.loc[:, "map"] = [map_name] * len(round_result)
 
     round_result.loc[:11, "phase"] = "first_half"
-    round_result.loc[12 : min(round_result["round_num"].max(), 23), "phase"] = "second_half"
+    round_result.loc[12 : min(round_result["round_num"].max(), 23), "phase"] = (
+        "second_half"
+    )
 
     if len(round_result) > 24:
         round_result.loc[24:, "phase"] = [
@@ -174,7 +172,9 @@ def extract_round_result_from_html(
     round_result.loc[:, "def_team"] = round_result["phase"].map(
         lambda p: game_phase_side[p]["Defense"]
     )
-    round_result.loc[:,"winning_team"] = vectorized_lookup(round_result,"winning_side","_team")
+    round_result.loc[:, "winning_team"] = vectorized_lookup(
+        round_result, "winning_side", "_team"
+    )
 
     index_cols = ["game_id", "map", "phase", "round_num"]
     if len(round_result) < 13:
@@ -192,7 +192,7 @@ def extract_overview_from_html(html: str, map_name: str, game_id: int) -> pd.Dat
     side_stat_cols = []
     for side in side_list:
         for header in headers:
-            side_stat_cols.append(f"{header.lower()}_{side}")
+            side_stat_cols.append(f"{header}_{side}")
 
     all_columns = ["game_id", "map", "team", "name", "agent"] + side_stat_cols
 
@@ -226,11 +226,11 @@ def extract_overview_from_html(html: str, map_name: str, game_id: int) -> pd.Dat
 
                 side = None
                 if "mod-both" in classes:
-                    side = "All"
+                    side = "all"
                 elif "mod-t" in classes:
-                    side = "Attack"
+                    side = "atk"
                 elif "mod-ct" in classes:
-                    side = "Defense"
+                    side = "def"
 
                 if side:
                     column_name = f"{col}_{side}"
@@ -241,6 +241,7 @@ def extract_overview_from_html(html: str, map_name: str, game_id: int) -> pd.Dat
     result = pd.DataFrame(data_rows, columns=all_columns)
 
     index_cols = ["game_id", "map", "team", "name"]
+    result.rename(columns={col: col.lower() for col in result.columns}, inplace=True)
     if len(result) != 5:
         return pd.DataFrame(columns=result.columns).set_index(index_cols)
 
@@ -271,8 +272,8 @@ def extract_economy_from_html(html: str, map_name: str, game_id: int) -> pd.Data
     data_rows = []
 
     round_adder = 0
-    phase = ["first_half","second_half","overtime"]
-    for phase,row in zip(phase,rows):
+    phase = ["first_half", "second_half", "overtime"]
+    for phase, row in zip(phase, rows):
         teams, *wins = row.css("td")
         teams_order = [team.text(strip=True) for team in teams.css("div.team")]
 
@@ -285,7 +286,7 @@ def extract_economy_from_html(html: str, map_name: str, game_id: int) -> pd.Data
 
         defender_on = int(not bool(attacker_on))
         overtime_counter = 1
-        for round_num,win in enumerate(wins,start=1):
+        for round_num, win in enumerate(wins, start=1):
             if phase == "overtime":
                 phase_str = f"overtime_{overtime_counter}"
             else:
@@ -295,8 +296,8 @@ def extract_economy_from_html(html: str, map_name: str, game_id: int) -> pd.Data
                 {
                     "game_id": game_id,
                     "map": map_name,
-                    "phase" : phase_str,
-                    "round_num" : round_num + round_adder,
+                    "phase": phase_str,
+                    "round_num": round_num + round_adder,
                     "atk_buytype": get_buy_type(boxes[attacker_on].text(strip=True)),
                     "def_buytype": get_buy_type(boxes[defender_on].text(strip=True)),
                 }
@@ -304,7 +305,7 @@ def extract_economy_from_html(html: str, map_name: str, game_id: int) -> pd.Data
             overtime_counter += 1
         round_adder += 12
 
-    index_cols = ["game_id", "map","phase","round_num"]
+    index_cols = ["game_id", "map", "phase", "round_num"]
     econ_df = pd.DataFrame(data_rows)
 
     if len(econ_df) < 13:
@@ -322,7 +323,6 @@ def scrape_match_info(
     team_abbreviate: dict[str, str],
     url: str = "https://www.vlr.gg/",
 ) -> Optional[Match]:
-    # --- 1. Basic Request Error Handling ---
     try:
         match_response = _session.get(match_url)
         econ_response = _session.get(f"{match_url}?game=all&tab=economy")
@@ -415,31 +415,35 @@ def scrape_match_info(
         map_name = map_div_node.css_first("div.map").css_first("span").text(strip=True)
         map_ids.append((map_name, map_id))
 
-    overview_df = pd.DataFrame()
-    round_result_df = pd.DataFrame()
-    econ_df = pd.DataFrame()
-
+    games = []
     for map_name, map_id in map_ids:
+
         div_map = match_html.css_first(f'div.vm-stats-game[data-game-id="{map_id}"]')
         if not div_map:
             print(f"Skipping map {map_id} due to missing data.")
             continue
 
+        map_teams = div_map.css("div.vm-stats-game-header div.team")
+        map_winner = ""
+        map_win_score = 0
+        for team in map_teams:
+            team_name = team.css_first("div.team-name").text(strip=True)
+            team_score = int(team.css_first("div.score").text(strip=True))
+            if team_score > map_win_score:
+                map_win_score = team_score
+                map_winner = team_name
+
         div_econ = econ_html.css_first(f'div.vm-stats-game[data-game-id="{map_id}"]')
 
-        econ_df = pd.concat(
-            [econ_df, extract_economy_from_html(div_econ.html, map_name, int(map_id))]
-        )
+        econ_df = extract_economy_from_html(div_econ.html, map_name, int(map_id))
 
         # Assume extract_round_result_from_html and extract_df_from_html are robust
-        round_result_df = pd.concat(
-            [
-                round_result_df,
-                extract_round_result_from_html(div_map.html, map_name, int(map_id)),
-            ]
+        round_result_df = extract_round_result_from_html(
+            div_map.html, map_name, int(map_id)
         )
 
         stat_tables = div_map.css("table.wf-table-inset.mod-overview")
+        overview_df = pd.DataFrame()
         for table in stat_tables:
             overview_df = pd.concat(
                 [
@@ -448,23 +452,24 @@ def scrape_match_info(
                 ]
             )
 
-    if len(round_result_df) != len(econ_df):
-        return None
-    combined_round_result_df = pd.concat([round_result_df,econ_df],axis=1)
+        if len(round_result_df) != len(econ_df):
+            continue
+        combined_round_result_df = pd.concat([round_result_df, econ_df], axis=1)
 
-    combined_round_result_df = combined_round_result_df.assign(
-        winner_buytype = vectorized_lookup(combined_round_result_df,"winning_side","_buytype")
-    )
-
-    # --- 5. Final Consistency Checks ---
-    if len(overview_df) == 0 or len(overview_df) != len(map_ids) * 10:
-        print(overview_df.shape)
-        print("Final consistency check failed for 'overview_df'")
-        return None
-
-    if len(round_result_df) < 13 * len(map_ids):
-        print("Final consistency check failed for 'round_result_df'")
-        return None
+        combined_round_result_df = combined_round_result_df.assign(
+            winner_buytype=vectorized_lookup(
+                combined_round_result_df, "winning_side", "_buytype"
+            )
+        )
+        games.append(
+            Game(
+                map_name=map_name,
+                game_id=map_id,
+                map_winner=map_winner,
+                round_result=combined_round_result_df,
+                overview=overview_df,
+            )
+        )
 
     # --- 6. Return Pydantic Object ---
     return Match(
@@ -474,7 +479,8 @@ def scrape_match_info(
         match_date=match_date,
         match_result=match_result,
         team_abbreviation=team_abbreviate,
+        winner=max(match_result, key=match_result.get),
+        match_url=match_url,
         pick_ban=pick_ban_df,
-        round_result=combined_round_result_df,
-        overview=overview_df,
+        games=games,
     )
