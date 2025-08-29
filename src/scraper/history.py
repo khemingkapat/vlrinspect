@@ -338,16 +338,28 @@ def scrape_match_info(
     # --- 2. Crucial Data Scraping and Validation ---
     teams_node = match_html.css_first("title")
     event_name_node = match_html.css_first("a.match-header-event div > div")
+    stage_name_node = match_html.css_first("div.match-header-event-series")
     match_date_data = match_html.css_first("div.moment-tz-convert")
     match_score_node = match_html.css_first("div.js-spoiler")
 
-    if not all([teams_node, event_name_node, match_date_data, match_score_node]):
+    if not all(
+        [
+            teams_node,
+            event_name_node,
+            stage_name_node,
+            match_date_data,
+            match_score_node,
+        ]
+    ):
         print("Missing crucial top-level data.")
         return None
 
     try:
         teams = teams_node.text().strip().split(" | ")[0].split(" vs. ")
         event_name = event_name_node.text(strip=True)
+        stage_name = (
+            stage_name_node.text(strip=True).replace("\t", "").replace("\n", "")
+        )
         match_date = datetime.strptime(
             match_date_data.attributes.get("data-utc-ts"), "%Y-%m-%d %H:%M:%S"
         )
@@ -465,7 +477,7 @@ def scrape_match_info(
             Game(
                 map_name=map_name,
                 game_id=map_id,
-                map_winner=map_winner,
+                winner=map_winner,
                 round_result=combined_round_result_df,
                 overview=overview_df,
             )
@@ -476,6 +488,7 @@ def scrape_match_info(
         patch=patch,
         teams=teams,
         event_name=event_name,
+        stage_name=stage_name,
         match_date=match_date,
         match_result=match_result,
         team_abbreviation=team_abbreviate,
