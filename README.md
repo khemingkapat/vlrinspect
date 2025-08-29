@@ -52,4 +52,19 @@ from scraper import Scraper
 
 Scraper.get_match_history(<arguments>)
 ```
-
+# Features TODO
+1. **Overall**
+    1. Win Lose Record
+    2. Players' Stats
+    3. Buy Type Record
+    4. Win Condition Distribution
+    5. Filter History(Opponent-Specific, Map-Specific)
+2. **Players**
+    1. Player's Stats
+    2. Player's Agent Pool
+    3. Filter By Map
+3. **Map**
+    1. Agent Comp
+    2. Map Records
+    3. Win Condition
+    4. Filter by Patch
