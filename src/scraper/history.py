@@ -2,9 +2,10 @@ import requests
 from selectolax.parser import HTMLParser
 import pandas as pd
 from datetime import datetime
-from utils import detect_type
+from utils import detect_type,vectorized_lookup
 from models import Match, MatchHistory
 from typing import Optional
+
 
 
 def get_team_history_list(
@@ -89,7 +90,7 @@ def extract_round_result_from_html(
             winner = round.css_first("div.rnd-sq.mod-win")
             if winner is None:
                 continue
-            winning_side = ["Attack", "Defense"][
+            winning_side = ["atk", "def"][
                 "mod-ct" in winner.attributes.get("class")
             ]
 
@@ -129,14 +130,15 @@ def extract_round_result_from_html(
         }
 
     round_result = pd.DataFrame(
-        data, columns=["phase", "round", "winning_side", "reason", "current_score"]
+        data, columns=["phase", "round_num", "winning_side", "reason", "current_score"]
     )
+
 
     round_result.loc[:, "game_id"] = [game_id] * len(round_result)
     round_result.loc[:, "map"] = [map_name] * len(round_result)
 
     round_result.loc[:11, "phase"] = "first_half"
-    round_result.loc[12 : min(round_result["round"].max(), 23), "phase"] = "second_half"
+    round_result.loc[12 : min(round_result["round_num"].max(), 23), "phase"] = "second_half"
 
     if len(round_result) > 24:
         round_result.loc[24:, "phase"] = [
@@ -172,8 +174,9 @@ def extract_round_result_from_html(
     round_result.loc[:, "def_team"] = round_result["phase"].map(
         lambda p: game_phase_side[p]["Defense"]
     )
+    round_result.loc[:,"winning_team"] = vectorized_lookup(round_result,"winning_side","_team")
 
-    index_cols = ["game_id", "map", "phase", "round"]
+    index_cols = ["game_id", "map", "phase", "round_num"]
     if len(round_result) < 13:
         return pd.DataFrame(columns=round_result.columns).set_index(index_cols)
 
@@ -182,13 +185,14 @@ def extract_round_result_from_html(
 
 def extract_overview_from_html(html: str, map_name: str, game_id: int) -> pd.DataFrame:
     tree = HTMLParser(html)
-    side_list = ["All", "Attack", "Defense"]
+    side_list = ["all", "atk", "def"]
     headers = [th.text(strip=True) for th in tree.css("table thead tr th")][2:]
+    headers[-1] = "F" + headers[-1]
 
     side_stat_cols = []
     for side in side_list:
         for header in headers:
-            side_stat_cols.append(f"{header}_{side}")
+            side_stat_cols.append(f"{header.lower()}_{side}")
 
     all_columns = ["game_id", "map", "team", "name", "agent"] + side_stat_cols
 
@@ -292,7 +296,7 @@ def extract_economy_from_html(html: str, map_name: str, game_id: int) -> pd.Data
                     "game_id": game_id,
                     "map": map_name,
                     "phase" : phase_str,
-                    "round" : round_num + round_adder,
+                    "round_num" : round_num + round_adder,
                     "atk_buytype": get_buy_type(boxes[attacker_on].text(strip=True)),
                     "def_buytype": get_buy_type(boxes[defender_on].text(strip=True)),
                 }
@@ -300,7 +304,7 @@ def extract_economy_from_html(html: str, map_name: str, game_id: int) -> pd.Data
             overtime_counter += 1
         round_adder += 12
 
-    index_cols = ["game_id", "map","phase","round"]
+    index_cols = ["game_id", "map","phase","round_num"]
     econ_df = pd.DataFrame(data_rows)
 
     if len(econ_df) < 13:
@@ -448,6 +452,9 @@ def scrape_match_info(
         return None
     combined_round_result_df = pd.concat([round_result_df,econ_df],axis=1)
 
+    combined_round_result_df = combined_round_result_df.assign(
+        winner_buytype = vectorized_lookup(combined_round_result_df,"winning_side","_buytype")
+    )
 
     # --- 5. Final Consistency Checks ---
     if len(overview_df) == 0 or len(overview_df) != len(map_ids) * 10:
