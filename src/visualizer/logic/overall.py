@@ -19,13 +19,11 @@ def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFram
         cat1_df = team_df.loc[win_idx, col_all]
         cat2_df = team_df.loc[~win_idx, col_all]
 
-        cat1_df.rename(
+        cat1_df = cat1_df.rename(
             columns={col: col.removesuffix("_all") for col in cat1_df.columns},
-            inplace=True,
         )
-        cat2_df.rename(
+        cat2_df = cat2_df.rename(
             columns={col: col.removesuffix("_all") for col in cat2_df.columns},
-            inplace=True,
         )
         cat1_id = "win"
         cat2_id = "lose"
@@ -33,13 +31,11 @@ def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFram
         cat1_df = team_df.loc[:, team_df.columns.str.endswith("_atk")]
         cat2_df = team_df.loc[:, team_df.columns.str.endswith("_def")]
 
-        cat1_df.rename(
+        cat1_df = cat1_df.rename(
             columns={col: col.removesuffix("_atk") for col in cat1_df.columns},
-            inplace=True,
         )
-        cat2_df.rename(
+        cat2_df = cat2_df.rename(
             columns={col: col.removesuffix("_def") for col in cat2_df.columns},
-            inplace=True,
         )
         cat1_id = "atk"
         cat2_id = "def"
@@ -60,7 +56,7 @@ def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFram
     player_cat1["cat"] = cat1_id
     player_cat2["cat"] = cat2_id
     combined = pd.concat([player_cat1, player_cat2])
-    combined.rename(
+    return combined.rename(
         columns={
             "r2.0": "Rating 2.0",
             "acs": "ACS",
@@ -75,10 +71,7 @@ def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFram
             "fd": "First Death",
             "f+/–": "FKD Diff",
         },
-        inplace=True,
     )
-
-    return combined
 
 
 def team_buy_type_win(df: pd.DataFrame, team_name: str) -> pd.DataFrame:
