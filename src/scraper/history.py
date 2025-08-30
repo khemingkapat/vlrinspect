@@ -3,7 +3,7 @@ from selectolax.parser import HTMLParser
 import pandas as pd
 from datetime import datetime
 from utils import detect_type, vectorized_lookup
-from models import Match, MatchHistory, Game
+from models import Match, Matches, MatchHistory, Game, Games
 from typing import Optional
 
 
@@ -62,7 +62,8 @@ def scrape_matches(
         )
         idx += 1
 
-    match_history = MatchHistory(full_name, team_abbreviate[full_name], result)
+    matches = Matches(result)
+    match_history = MatchHistory(full_name, team_abbreviate[full_name], matches)
     return match_history
 
 
@@ -332,6 +333,8 @@ def scrape_match_info(
         print(f"Error fetching page: {e}")
         return None
 
+    match_id = int(match_url.removeprefix(url).split("/")[0])
+
     match_html = HTMLParser(match_response.text)
     econ_html = HTMLParser(econ_response.text)
 
@@ -427,7 +430,7 @@ def scrape_match_info(
         map_name = map_div_node.css_first("div.map").css_first("span").text(strip=True)
         map_ids.append((map_name, map_id))
 
-    games = []
+    games_data = []
     for map_name, map_id in map_ids:
 
         div_map = match_html.css_first(f'div.vm-stats-game[data-game-id="{map_id}"]')
@@ -473,18 +476,20 @@ def scrape_match_info(
                 combined_round_result_df, "winning_side", "_buytype"
             )
         )
-        games.append(
+        games_data.append(
             Game(
                 map_name=map_name,
-                game_id=map_id,
+                game_id=int(map_id),
                 winner=map_winner,
                 round_result=combined_round_result_df,
                 overview=overview_df,
             )
         )
+    games = Games(games_data)
 
     # --- 6. Return Pydantic Object ---
     return Match(
+        match_id=match_id,
         patch=patch,
         teams=teams,
         event_name=event_name,
