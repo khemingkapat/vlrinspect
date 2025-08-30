@@ -1,12 +1,14 @@
 from typing import Iterator
 from datetime import datetime
 import pandas as pd
-from .game import Game
+import numpy as np
+from .game import Game, Games
 
 
 class Match:
     def __init__(
         self,
+        match_id: int,
         patch: float,
         teams: list[str],
         event_name: str,
@@ -17,8 +19,9 @@ class Match:
         winner: str,
         match_url: str,
         pick_ban: pd.DataFrame,
-        games: list[Game],
+        games: Games,
     ) -> None:
+        self.match_id = match_id
         self.patch = patch
         self.teams = teams
         self.event_name = event_name
@@ -34,8 +37,9 @@ class Match:
         game_data = []
         for game in games:
             game_data.append([game.game_id, game.map_name, game.winner])
+
         self.games_data = pd.DataFrame(
-            game_data, columns=["game_id", "map_name", "winner"]
+            game_data, columns=np.array(["game_id", "map_name", "winner"])
         ).set_index("game_id")
 
     def __str__(self) -> str:
@@ -55,59 +59,16 @@ class Match:
         return iter(self.games)
 
 
-class MatchHistory:
-    def __init__(self, full_name: str, short_name: str, matches: list[Match]):
+class Matches:
+    def __init__(self, matches: list[Match]):
         self.matches = matches
-        self.full_name = full_name
-        self.short_name = short_name
+        self.by_id = {match.match_id: match for match in matches}
 
-        # self.overview = pd.DataFrame()
-        # self.round_result = pd.DataFrame()
-        # self.matches = pd.DataFrame()
-
-        matches_data = []
-        for match in self.matches:
-            match_id = int(
-                match.match_url.removeprefix("https://www.vlr.gg/").split("/")[0]
-            )
-            opp_team = match.teams[0]
-            if opp_team == self.full_name:
-                opp_team = match.teams[1]
-
-            # self.overview = pd.concat([self.overview, match.overview])
-            # self.round_result = pd.concat([self.round_result, match.round_result])
-            matches_data.append(
-                [
-                    match_id,
-                    match.event_name,
-                    match.stage_name,
-                    match.match_date,
-                    opp_team,
-                    match.match_result[self.full_name],
-                    match.match_result[opp_team],
-                    "win" if match.winner == self.full_name else "lose",
-                ]
-            )
-
-        self.matches_data = pd.DataFrame(
-            matches_data,
-            columns=[
-                "match_id",
-                "event_name",
-                "stage_name",
-                "match_date",
-                "opp_team",
-                "team_score",
-                "opp_score",
-                "result",
-            ],
-        ).set_index("match_id")
-
-    def __repr__(self) -> str:
-        return f"{self.full_name}'s History"
-
-    def __iter__(self) -> Iterator[Match]:
-        return iter(self.matches_list)
+    def __getitem__(self, match_id: int) -> Match:
+        return self.by_id[match_id]
 
     def __len__(self) -> int:
-        return len(self.matches_list)
+        return len(self.matches)
+
+    def __iter__(self) -> Iterator[Match]:
+        return iter(self.by_id.values())
