@@ -87,3 +87,17 @@ def get_team_buy_type_win_lose(matches: MatchHistory) -> pd.DataFrame:
     result["lose"] = lose_df.loser_buytype.value_counts()
     result["total"] = result.sum(axis=1)
     return result
+
+
+def get_team_win_condition(matches: MatchHistory) -> pd.DataFrame:
+    round_result = matches.round_result
+
+    win_idx = round_result.winning_team == matches.short_name
+
+    win_df = round_result[win_idx]
+    lose_df = round_result[~win_idx]
+
+    result = pd.DataFrame()
+    result["win"] = win_df.reason.value_counts()
+    result["lose"] = lose_df.reason.value_counts()
+    return result
