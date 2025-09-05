@@ -4,6 +4,7 @@ from .game import Games
 from typing import Iterator
 import numpy as np
 from functools import cached_property
+from datetime import datetime
 
 
 class MatchHistory:
@@ -16,7 +17,7 @@ class MatchHistory:
         # self.round_result = pd.DataFrame()
         # self.matches = pd.DataFrame()
 
-    @property
+    @cached_property
     def matches_data(self) -> pd.DataFrame:
         matches_data = []
         for match in self.matches:
@@ -60,27 +61,27 @@ class MatchHistory:
 
     @cached_property
     def games_data(self) -> pd.DataFrame:
-        games_data = pd.DataFrame()
+        all_game_data: list[pd.DataFrame] = []
         for match in self.matches:
-            games_data = pd.concat([games_data, match.games_data])
+            all_game_data.append(match.games_data)
 
-        return games_data
+        return pd.concat(all_game_data)
 
     @cached_property
     def overview(self) -> pd.DataFrame:
-        overview = pd.DataFrame()
+        all_overview_data = []
         for match in self.matches:
             for game in match.games:
-                overview = pd.concat([overview, game.overview])
-        return overview
+                all_overview_data.append(game.overview)
+        return pd.concat(all_overview_data)
 
     @cached_property
     def round_result(self) -> pd.DataFrame:
-        round_result = pd.DataFrame()
+        all_round_result = []
         for match in self.matches:
             for game in match.games:
-                round_result = pd.concat([round_result, game.round_result])
-        return round_result
+                all_round_result.append(game.round_result)
+        return pd.concat(all_round_result)
 
     @cached_property
     def games(self) -> Games:
@@ -88,6 +89,61 @@ class MatchHistory:
         for match in self.matches:
             all_games.extend(match.games.games)
         return Games(all_games)
+
+    def filter_matches(
+        self,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        patch: float | None = None,
+        event_name: str | None = None,
+        map_names: list[str] = [],
+    ) -> "MatchHistory":
+        filtered_matches = []
+        for match in self.matches:
+            if start_date and match.match_date < start_date:
+                continue
+            if end_date and match.match_date > end_date:
+                continue
+            if patch and match.patch != patch:
+                continue
+            if event_name and (
+                match.event_name.lower() != event_name.lower()
+                and event_name.lower() not in match.event_name.lower()
+            ):
+                continue
+
+            print(match.event_name)
+            if map_names:
+                filtered_games = []
+                for game in match.games:
+                    if game.map_name in map_names:
+                        filtered_games.append(game)
+
+                if not filtered_games:
+                    continue
+
+                new_games = Games(filtered_games)
+                new_match = Match(
+                    match_id=match.match_id,
+                    patch=match.patch,
+                    teams=match.teams,
+                    event_name=match.event_name,
+                    stage_name=match.stage_name,
+                    match_date=match.match_date,
+                    match_result=match.match_result,
+                    team_abbreviation=match.team_abbreviation,
+                    winner=match.winner,
+                    match_url=match.match_url,
+                    pick_ban=match.pick_ban,
+                    games=new_games,
+                )
+                filtered_matches.append(new_match)
+            else:
+                filtered_matches.append(match)
+
+        new_matches_collection = Matches(filtered_matches)
+
+        return MatchHistory(self.full_name, self.short_name, new_matches_collection)
 
     def __repr__(self) -> str:
         return f"{self.full_name}'s History"
