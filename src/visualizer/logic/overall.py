@@ -74,9 +74,16 @@ def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFram
     )
 
 
-def team_buy_type_win(df: pd.DataFrame, team_name: str) -> pd.DataFrame:
-    if "winning_team" not in df.columns:
-        return pd.DataFrame()
+def get_team_buy_type_win_lose(matches: MatchHistory) -> pd.DataFrame:
+    round_result = matches.round_result
 
-    team_df = df[df.winning_team == team_name]
-    return team_df["winner_buytype"].value_counts(normalize=True)
+    win_idx = round_result.winning_team == matches.short_name
+
+    win_df = round_result[win_idx]
+    lose_df = round_result[~win_idx]
+
+    result = pd.DataFrame()
+    result["win"] = win_df.winner_buytype.value_counts()
+    result["lose"] = lose_df.loser_buytype.value_counts()
+    result["total"] = result.sum(axis=1)
+    return result
