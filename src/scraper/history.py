@@ -472,8 +472,15 @@ def scrape_match_info(
         combined_round_result_df = pd.concat([round_result_df, econ_df], axis=1)
 
         combined_round_result_df = combined_round_result_df.assign(
+            losing_side = combined_round_result_df.winning_side.map({"atk":"def","def":"atk"})
+        )
+
+        combined_round_result_df = combined_round_result_df.assign(
             winner_buytype=vectorized_lookup(
                 combined_round_result_df, "winning_side", "_buytype"
+            ),
+            loser_buytype=vectorized_lookup(
+                combined_round_result_df, "losing_side", "_buytype"
             )
         )
         games_data.append(
