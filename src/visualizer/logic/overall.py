@@ -100,4 +100,5 @@ def get_team_win_condition(matches: MatchHistory) -> pd.DataFrame:
     result = pd.DataFrame()
     result["win"] = win_df.reason.value_counts()
     result["lose"] = lose_df.reason.value_counts()
+    result["total"] = result.sum(axis=1)
     return result

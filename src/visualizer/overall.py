@@ -384,18 +384,31 @@ def plot_team_buy_type_win_lose(matches: MatchHistory) -> Figure:
 
 
 def plot_team_win_condition(matches: MatchHistory) -> Figure:
-    df = get_team_win_condition(matches).reset_index()
-    df_melted = df.melt(id_vars="reason", var_name="result", value_name="count")
+    df = get_team_win_condition(matches)
+
+    df_normalized = (
+        df.div(df["total"], axis=0)
+        .drop(columns=["total"])
+        .sort_values("win", ascending=False)
+    )
+
+    df_normalized = df_normalized.reset_index()
+    df_melted = df_normalized.melt(
+        id_vars="reason", var_name="result", value_name="proportion"
+    )
 
     fig = px.bar(
         df_melted,
         x="reason",
-        y="count",
+        y="proportion",
         color="result",
-        barmode="group",
-        title=f"{matches.full_name}'s Win/Loss Reasons",
-        labels={"reason": "Reason", "count": "Number of Rounds", "result": "Result"},
         color_discrete_map={"win": "#4ECDC4", "lose": "#FF6B6B"},
+        title=f"{matches.full_name}'s Win/Lose Probabilities by Buy Type",
+        labels={
+            "winner_buytype": "Buy Type",
+            "proportion": "Proportion",
+            "result": "Result",
+        },
     )
 
     fig.update_layout(
