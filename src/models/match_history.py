@@ -96,13 +96,29 @@ class MatchHistory:
         end_date: datetime | None = None,
         patch: float | None = None,
         event_name: str | None = None,
+        since_event: str | None = None,
         map_names: list[str] = [],
     ) -> "MatchHistory":
+        since_date = None
+        if since_event:
+            event_dates = []
+            for match in self.matches:
+                if (
+                    match.event_name.lower() == since_event.lower()
+                    or since_event.lower() in match.event_name.lower()
+                ):
+                    event_dates.append(match.match_date)
+
+            if event_dates:
+                since_date = min(event_dates)
+
         filtered_matches = []
         for match in self.matches:
             if start_date and match.match_date < start_date:
                 continue
             if end_date and match.match_date > end_date:
+                continue
+            if since_date and match.match_date < since_date:
                 continue
             if patch and match.patch != patch:
                 continue
@@ -111,17 +127,13 @@ class MatchHistory:
                 and event_name.lower() not in match.event_name.lower()
             ):
                 continue
-
-            print(match.event_name)
             if map_names:
                 filtered_games = []
                 for game in match.games:
                     if game.map_name in map_names:
                         filtered_games.append(game)
-
                 if not filtered_games:
                     continue
-
                 new_games = Games(filtered_games)
                 new_match = Match(
                     match_id=match.match_id,
@@ -140,9 +152,7 @@ class MatchHistory:
                 filtered_matches.append(new_match)
             else:
                 filtered_matches.append(match)
-
         new_matches_collection = Matches(filtered_matches)
-
         return MatchHistory(self.full_name, self.short_name, new_matches_collection)
 
     def __repr__(self) -> str:
