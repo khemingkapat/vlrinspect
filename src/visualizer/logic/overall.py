@@ -8,70 +8,57 @@ def get_team_win_lose(matches: MatchHistory) -> pd.DataFrame:
     return win_lose_count
 
 
-def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFrame:
-    team_df = matches.overview.xs(matches.short_name, level="team")
-    win_game_ids = [
-        game.game_id for game in matches.games if game.winner == matches.full_name
-    ]
-    if cat_by == "win":
-        win_idx = team_df.index.get_level_values("game_id").isin(win_game_ids)
-        col_all = team_df.columns.str.endswith("_all")
-        cat1_df = team_df.loc[win_idx, col_all]
-        cat2_df = team_df.loc[~win_idx, col_all]
+def get_team_pistol_impact(matches: MatchHistory) -> pd.DataFrame:
+    total_pistol = len(matches.games) * 2
+    total_pistol_win = 0
+    total_second_round = len(matches.games)
+    total_second_round_win = 0
+    total_2_round_win = 0
+    for game in matches.games:
+        if len(game.round_result) > 13:
+            total_second_round += 1
 
-        cat1_df = cat1_df.rename(
-            columns={col: col.removesuffix("_all") for col in cat1_df.columns},
-        )
-        cat2_df = cat2_df.rename(
-            columns={col: col.removesuffix("_all") for col in cat2_df.columns},
-        )
-        cat1_id = "win"
-        cat2_id = "lose"
-    else:
-        cat1_df = team_df.loc[:, team_df.columns.str.endswith("_atk")]
-        cat2_df = team_df.loc[:, team_df.columns.str.endswith("_def")]
+        for base_round in [0, 12]:
+            if (
+                game.round_result.iloc[base_round + 0].winning_team
+                == matches.short_name
+            ):
+                total_pistol_win += 1
 
-        cat1_df = cat1_df.rename(
-            columns={col: col.removesuffix("_atk") for col in cat1_df.columns},
-        )
-        cat2_df = cat2_df.rename(
-            columns={col: col.removesuffix("_def") for col in cat2_df.columns},
-        )
-        cat1_id = "atk"
-        cat2_id = "def"
+            if ((base_round + 1) < len(game.round_result)) and (
+                game.round_result.iloc[base_round + 1].winning_team
+                == matches.short_name
+            ):
+                total_second_round_win += 1
 
-    player_cat1 = (
-        cat1_df.select_dtypes(exclude="object")
-        .groupby(level="name")
-        .mean()
-        .reset_index()
-    )
-    player_cat2 = (
-        cat2_df.select_dtypes(exclude="object")
-        .groupby(level="name")
-        .mean()
-        .reset_index()
-    )
+            if (
+                game.round_result.iloc[base_round + 0].winning_team
+                == matches.short_name
+            ) and (
+                ((base_round + 1) < len(game.round_result))
+                and (
+                    game.round_result.iloc[base_round + 1].winning_team
+                    == matches.short_name
+                )
+            ):
+                total_2_round_win += 1
 
-    player_cat1["cat"] = cat1_id
-    player_cat2["cat"] = cat2_id
-    combined = pd.concat([player_cat1, player_cat2])
-    return combined.rename(
-        columns={
-            "r2.0": "Rating 2.0",
-            "acs": "ACS",
-            "k": "Kill",
-            "d": "Death",
-            "a": "Assist",
-            "+/–": "KD Diff",
-            "kast": "KAST",
-            "adr": "ADR",
-            "hs%": "Headshot %",
-            "fk": "First Kill",
-            "fd": "First Death",
-            "f+/–": "FKD Diff",
-        },
-    )
+    return pd.DataFrame(
+        {
+            "pistol": [total_pistol, total_pistol_win, total_pistol_win / total_pistol],
+            "second_round": [
+                total_second_round,
+                total_second_round_win,
+                total_second_round_win / total_second_round,
+            ],
+            "2_round": [
+                total_second_round,
+                total_2_round_win,
+                total_2_round_win / total_second_round,
+            ],
+            "type": ["total", "win", "prob"],
+        }
+    ).set_index("type")
 
 
 def get_team_buy_type_win_lose(matches: MatchHistory) -> pd.DataFrame:
