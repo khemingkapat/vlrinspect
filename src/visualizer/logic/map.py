@@ -46,3 +46,74 @@ def get_team_side_bias(matches: MatchHistory) -> pd.DataFrame:
     ).round(2)
 
     return team_performance_summary
+
+
+def get_map_pistol_impact(matches: MatchHistory) -> pd.DataFrame:
+    games_data = matches.games_data.reset_index()
+    all_df = []
+
+    for map in games_data.map_name.unique():
+        n_games = (games_data.map_name == map).sum()
+
+        total_pistol = n_games * 2
+        total_pistol_win = 0
+        total_second_round = n_games
+        total_second_round_win = 0
+        total_2_round_win = 0
+
+        games = [game for game in matches.games if game.map_name == map]
+
+        for game in games:
+            if len(game.round_result) > 13:
+                total_second_round += 1
+
+            for base_round in [0, 12]:
+                if (
+                    game.round_result.iloc[base_round + 0].winning_team
+                    == matches.short_name
+                ):
+                    total_pistol_win += 1
+
+                if ((base_round + 1) < len(game.round_result)) and (
+                    game.round_result.iloc[base_round + 1].winning_team
+                    == matches.short_name
+                ):
+                    total_second_round_win += 1
+
+                if (
+                    game.round_result.iloc[base_round + 0].winning_team
+                    == matches.short_name
+                ) and (
+                    ((base_round + 1) < len(game.round_result))
+                    and (
+                        game.round_result.iloc[base_round + 1].winning_team
+                        == matches.short_name
+                    )
+                ):
+                    total_2_round_win += 1
+
+        all_df.append(
+            pd.DataFrame(
+                {
+                    "pistol": [
+                        total_pistol,
+                        total_pistol_win,
+                        total_pistol_win / total_pistol,
+                    ],
+                    "second_round": [
+                        total_second_round,
+                        total_second_round_win,
+                        total_second_round_win / total_second_round,
+                    ],
+                    "2_round": [
+                        total_second_round,
+                        total_2_round_win,
+                        total_2_round_win / total_second_round,
+                    ],
+                    "type": ["total", "win", "prob"],
+                    "map_name": [map] * 3,
+                }
+            )
+        )
+
+    return pd.concat(all_df).set_index(["map_name", "type"])

@@ -20,8 +20,8 @@ from .overall import (
 
 from .player import plot_player_stats, plot_player_stat_history
 
-from .logic.map import get_team_pick_ban, get_team_side_bias
-from .map import plot_team_pick_ban, plot_team_side_bias
+from .logic.map import get_team_pick_ban, get_team_side_bias, get_map_pistol_impact
+from .map import plot_team_pick_ban, plot_team_side_bias, plot_map_pistol_impact
 
 
 class Visualizer:
@@ -54,3 +54,6 @@ class Visualizer:
 
     get_team_side_bias = staticmethod(get_team_side_bias)
     plot_team_side_bias = staticmethod(plot_team_side_bias)
+
+    get_map_pistol_impact = staticmethod(get_map_pistol_impact)
+    plot_map_pistol_impact = staticmethod(plot_map_pistol_impact)
