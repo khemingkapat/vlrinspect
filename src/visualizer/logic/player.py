@@ -12,19 +12,6 @@ def get_players_agent_pool(matches: MatchHistory):
     return agent_stats
 
 
-def get_players_map_agent_pool(matches: MatchHistory):
-    team_df = matches.overview.xs(matches.short_name, level="team")
-    all_cols = [col for col in team_df if col.endswith("_all")]
-
-    aggregations = {"game_id": "count"}
-    for col in all_cols:
-        aggregations[col] = "mean"
-    agent_map_stats = (
-        team_df.reset_index().groupby(["name", "map", "agent"]).agg(aggregations)
-    )
-    return agent_map_stats
-
-
 def get_player_stats(matches: MatchHistory, cat_by: str = "side") -> pd.DataFrame:
     team_df = matches.overview.xs(matches.short_name, level="team")
     win_game_ids = [

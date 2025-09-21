@@ -21,6 +21,19 @@ def get_team_pick_ban(matches: MatchHistory) -> pd.DataFrame:
     return pick_ban_count.sort_values(["pick", "ban"], ascending=False)
 
 
+def get_players_map_agent_pool(matches: MatchHistory):
+    team_df = matches.overview.xs(matches.short_name, level="team")
+    all_cols = [col for col in team_df if col.endswith("_all")]
+
+    aggregations = {"game_id": "count"}
+    for col in all_cols:
+        aggregations[col] = "mean"
+    agent_map_stats = (
+        team_df.reset_index().groupby(["name", "map", "agent"]).agg(aggregations)
+    )
+    return agent_map_stats
+
+
 def get_team_side_bias(matches: MatchHistory) -> pd.DataFrame:
     round_result = matches.round_result
 
