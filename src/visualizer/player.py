@@ -1,8 +1,15 @@
 from models import MatchHistory
 from plotly.graph_objects import Figure
 import plotly.express as px
-from .logic.player import get_player_stats, get_player_stat_history
+from .logic.player import (
+    get_player_stats,
+    get_player_stat_history,
+    get_players_agent_pool,
+)
 import pandas as pd
+import plotly.graph_objects as go
+import base64
+from pathlib import Path
 
 
 def sort_players_by_stat(df, stat, sort_by, sort_order):
@@ -129,5 +136,152 @@ def plot_player_stat_history(
     for trace in fig.data:
         player_data = melted_df[melted_df["player"] == trace.name]
         trace.customdata = player_data[["game_id"]].values
+
+    return fig
+
+
+def plot_players_agent_pool(
+    matches: MatchHistory, x_stat: str = "r2.0", y_stat: str = "kast"
+):
+    player_agent_pool = get_players_agent_pool(matches).reset_index()
+    x_stat = x_stat + "_all"
+    y_stat = y_stat + "_all"
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+    color_map = {
+        player: colors[i] for i, player in enumerate(player_agent_pool.name.unique())
+    }
+
+    # Create agent emoji mapping instead of loading images
+    agent_emoji_map = {
+        "jett": "💨",  # Wind for Jett's speed
+        "reyna": "👁️",  # Eye for Reyna's abilities
+        "sage": "🌿",  # Plant for Sage's healing
+        "phoenix": "🔥",  # Fire for Phoenix
+        "raze": "💣",  # Explosion for Raze
+        "breach": "💥",  # Lightning for Breach
+        "omen": "🥷🏾",  # Moon for Omen's shadow
+        "brimstone": "📱",  # Diamond for Brimstone
+        "cypher": "📹",  # Camera for Cypher
+        "sova": "🏹",  # Bow for Sova
+        "killjoy": "🤖",  # Robot for Killjoy
+        "viper": "🐍",  # Toxic for Viper
+        "skye": "🦋",  # Butterfly for Skye
+        "yoru": "👤",  # Shadow figure for Yoru
+        "astra": "⭐",  # Star for Astra
+        "kayo": "🔋",  # Battery for KAY/O
+        "chamber": "🎯",  # Target for Chamber
+        "neon": "⚡",  # Lightning for Neon
+        "fade": "🐶",  # Fog for Fade
+        "harbor": "🌊",  # Wave for Harbor
+        "gekko": "🦎",  # Lizard for Gekko
+        "deadlock": "🕷️",  # Spider for Deadlock
+        "iso": "🛡️",  # Diamond for Iso
+        "clove": "🍀",  # Clover for Clove
+        "vyse": "🌵",  # Thread for Vyse
+        "waylay": "⚡️",
+        "tejo": "🚀",
+    }
+
+    # Add a column for the agent emoji
+    player_agent_pool["agent_emoji"] = (
+        player_agent_pool["agent"].str.lower().map(agent_emoji_map)
+    )
+    # Fill any missing emojis with question mark
+    player_agent_pool["agent_emoji"] = player_agent_pool["agent_emoji"].fillna("❓")
+
+    fig = go.Figure()
+
+    # Calculate min and max game_id for size scaling
+    min_games = player_agent_pool["game_id"].min()
+    max_games = player_agent_pool["game_id"].max()
+
+    # Define size range (minimum and maximum bubble sizes)
+    min_size = 50  # Minimum bubble size
+    max_size = 100  # Maximum bubble size
+
+    # Function to scale bubble sizes with less drastic differences
+    def scale_bubble_size(game_count):
+        if max_games == min_games:
+            return min_size
+        # Use square root to reduce the dramatic size differences
+        normalized = (game_count - min_games) / (max_games - min_games)
+        scaled = min_size + (max_size - min_size) * (normalized**0.5)
+        return scaled
+
+    # Function to scale emoji text size
+    def scale_emoji_size(game_count):
+        if max_games == min_games:
+            return 25
+        normalized = (game_count - min_games) / (max_games - min_games)
+        return int(20 + (40 - 20) * (normalized**0.5))  # Scale from 20 to 40
+
+    # Group data by player for a cleaner legend
+    for player_name in player_agent_pool.name.unique():
+        player_df = player_agent_pool[player_agent_pool["name"] == player_name]
+
+        # Add a trace for each player (bubbles)
+        fig.add_trace(
+            go.Scatter(
+                x=player_df[x_stat],
+                y=player_df[y_stat],
+                mode="markers",
+                marker=dict(
+                    symbol="circle",
+                    size=[scale_bubble_size(games) for games in player_df["game_id"]],
+                    color=color_map[player_name],
+                    opacity=0.7,  # Make circles slightly transparent so agent emojis show better
+                ),
+                name=player_name,  # The name for the legend
+                legendgroup=player_name,  # Group for legend interactions
+                customdata=player_df[["agent", "game_id", "name"]],
+                hovertemplate="<br>".join(
+                    [
+                        "<b>Player</b>: %{customdata[2]}",
+                        "<b>Agent</b>: %{customdata[0]}",
+                        "<b>Games Played</b>: %{customdata[1]}",
+                        "<b>" + x_stat + "</b>: %{x}",
+                        "<b>" + y_stat + "</b>: %{y}",
+                        "<extra></extra>",  # This removes the trace name box
+                    ]
+                ),
+            )
+        )
+
+        # Add agent emojis as text markers (linked to same legendgroup)
+        fig.add_trace(
+            go.Scatter(
+                x=player_df[x_stat],
+                y=player_df[y_stat],
+                mode="text",
+                text=player_df["agent_emoji"],
+                textfont=dict(
+                    size=[scale_emoji_size(games) for games in player_df["game_id"]],
+                    color="black",
+                ),
+                textposition="middle center",
+                name=f"{player_name}_emojis",
+                legendgroup=player_name,  # Same group - will hide/show together
+                showlegend=False,  # Don't show separate legend entry
+                customdata=player_df[["agent", "game_id", "name"]],
+                hovertemplate="<br>".join(
+                    [
+                        "<b>Player</b>: %{customdata[2]}",
+                        "<b>Agent</b>: %{customdata[0]}",
+                        "<b>Games Played</b>: %{customdata[1]}",
+                        "<b>" + x_stat + "</b>: %{x}",
+                        "<b>" + y_stat + "</b>: %{y}",
+                        "<extra></extra>",
+                    ]
+                ),
+            )
+        )
+
+    fig.update_layout(
+        xaxis_title=x_stat,
+        yaxis_title=y_stat,
+        legend_title_text="Player",
+        font=dict(family="Arial, sans-serif", size=12, color="#333"),
+        title_font_size=20,
+    )
 
     return fig
