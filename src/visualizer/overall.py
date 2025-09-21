@@ -1,12 +1,11 @@
-from re import Match
 import plotly.express as px
 from plotly.graph_objects import Figure
-import pandas as pd
 from models import MatchHistory
 from .logic.overall import (
     get_team_buy_type_win_lose,
     get_team_win_condition,
     get_team_win_lose,
+    get_team_pistol_impact,
 )
 
 
@@ -103,6 +102,35 @@ def plot_team_win_condition(matches: MatchHistory) -> Figure:
         yaxis_title="Number of Rounds",
         legend_title_text="Result",
         font=dict(family="Arial, sans-serif", size=12, color="#333"),
+    )
+
+    return fig
+
+
+def plot_team_poistol_impact(matches: MatchHistory) -> Figure:
+    team_pistol_impact = get_team_pistol_impact(matches).T
+    team_pistol_impact.index.name = "round_type"
+
+    df_melted = team_pistol_impact.reset_index().melt(
+        id_vars="round_type",
+        value_vars=["prob"],
+        var_name="metric",
+        value_name="probability",
+    )
+
+    fig = px.bar(
+        df_melted,
+        x="round_type",
+        y="probability",
+        color="round_type",
+        color_discrete_map={
+            "pistol": "#FF6B6B",
+            "second_round": "#4ECDC4",
+            "2_round": "#45B7D1",
+        },
+        title=f"{matches.full_name}'s Pistol Impact",
+        labels={"win_type": "Win Type", "probability": "Win Probability"},
+        hover_data={"probability": ":.2f"},
     )
 
     return fig
