@@ -140,12 +140,17 @@ def plot_player_stat_history(
     return fig
 
 
-def plot_players_agent_pool(
-    matches: MatchHistory, x_stat: str = "r2.0", y_stat: str = "kast"
-):
-    player_agent_pool = get_players_agent_pool(matches).reset_index()
-    x_stat = x_stat + "_all"
-    y_stat = y_stat + "_all"
+def plot_players_agent_pool(matches: MatchHistory):
+    player_agent_pool = get_players_agent_pool(
+        matches, apply_composite_scores=True
+    ).reset_index()
+    all_cols = [
+        col
+        for col in player_agent_pool.columns
+        if col not in ["index", "name", "agent", "game_id"]
+    ]
+    print(all_cols)
+    x_stat, y_stat = all_cols
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
     color_map = {
         player: colors[i] for i, player in enumerate(player_agent_pool.name.unique())
