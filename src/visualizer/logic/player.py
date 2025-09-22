@@ -4,17 +4,6 @@ from sklearn.preprocessing import StandardScaler
 
 
 def get_players_agent_pool(matches, apply_composite_scores: bool = False):
-    """
-    Get player agent statistics with optional composite score transformation
-
-    Parameters:
-    matches: MatchHistory object
-    apply_composite_scores: bool, whether to create composite Individual Performance and Team Contribution scores
-
-    Returns:
-    If apply_composite_scores=False: Original agent_stats DataFrame
-    If apply_composite_scores=True: DataFrame with composite scores and index info
-    """
 
     team_df = matches.overview.xs(matches.short_name, level="team")
     all_cols = [col for col in team_df if col.endswith("_all")]
@@ -26,30 +15,27 @@ def get_players_agent_pool(matches, apply_composite_scores: bool = False):
     if not apply_composite_scores:
         return agent_stats
 
-    # Define stat categories for composite scores
     individual_performance_stats = {
-        "k_all": 0.25,  # Kills - 25% weight
-        "acs_all": 0.25,  # ACS - 25% weight
-        "adr_all": 0.20,  # ADR - 20% weight
-        "r2_0_all": 0.15,  # Rating 2.0 - 15% weight
-        "hs%_all": 0.10,  # Headshot % - 10% weight
-        "d_all": -0.05,  # Deaths - negative 5% weight (fewer deaths = better)
+        "k_all": 0.25,
+        "acs_all": 0.25,
+        "adr_all": 0.20,
+        "r2_0_all": 0.15,
+        "hs%_all": 0.10,
+        "d_all": -0.05,
     }
 
     team_contribution_stats = {
-        "a_all": 0.30,  # Assists - 30% weight
-        "kast_all": 0.25,  # KAST - 25% weight
-        "fk_all": 0.15,  # First Kills - 15% weight
-        "fd_all": -0.15,  # First Deaths - negative 15% weight
-        "f+/-_all": 0.15,  # First Kill/Death difference - 15% weight
-        "+/-_all": 0.10,  # Plus/Minus - 10% weight
+        "a_all": 0.30,
+        "kast_all": 0.25,
+        "fk_all": 0.15,
+        "fd_all": -0.15,
+        "f+/-_all": 0.15,
+        "+/-_all": 0.10,
     }
 
-    # Prepare data for scoring
     scoring_data = agent_stats[all_cols].copy()
     scoring_data = scoring_data.fillna(0)
 
-    # Standardize the features (z-score normalization)
     scaler = StandardScaler()
     scoring_data_scaled = pd.DataFrame(
         scaler.fit_transform(scoring_data),
@@ -57,7 +43,6 @@ def get_players_agent_pool(matches, apply_composite_scores: bool = False):
         index=scoring_data.index,
     )
 
-    # Calculate Individual Performance composite score
     individual_performance = pd.Series(0, index=scoring_data_scaled.index)
     available_individual_stats = []
 
@@ -68,7 +53,6 @@ def get_players_agent_pool(matches, apply_composite_scores: bool = False):
                 f"{stat.replace('_all', '')} ({weight:.0%})"
             )
 
-    # Calculate Team Contribution composite score
     team_contribution = pd.Series(0, index=scoring_data_scaled.index)
     available_team_stats = []
 
@@ -77,7 +61,6 @@ def get_players_agent_pool(matches, apply_composite_scores: bool = False):
             team_contribution += scoring_data_scaled[stat] * weight
             available_team_stats.append(f"{stat.replace('_all', '')} ({weight:.0%})")
 
-    # Create DataFrame with composite scores
     composite_df = pd.DataFrame(
         {
             "Individual Performance": individual_performance,
@@ -87,16 +70,6 @@ def get_players_agent_pool(matches, apply_composite_scores: bool = False):
     )
 
     composite_df["game_id"] = agent_stats["game_id"]
-
-    # Reset index to get name and agent as columns
-
-    # Print composition for user understanding
-    print(f"\nComposite Score Composition:")
-    print(f"Individual Performance:")
-    print(f"  Components: {', '.join(available_individual_stats)}")
-    print(f"\nTeam Contribution:")
-    print(f"  Components: {', '.join(available_team_stats)}")
-    print(f"\nNote: Scores are standardized (z-scores) before weighting")
 
     return composite_df
 

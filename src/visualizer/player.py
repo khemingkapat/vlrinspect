@@ -149,7 +149,6 @@ def plot_players_agent_pool(matches: MatchHistory):
         for col in player_agent_pool.columns
         if col not in ["index", "name", "agent", "game_id"]
     ]
-    print(all_cols)
     x_stat, y_stat = all_cols
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
     color_map = {
@@ -158,31 +157,31 @@ def plot_players_agent_pool(matches: MatchHistory):
 
     # Create agent emoji mapping instead of loading images
     agent_emoji_map = {
-        "jett": "💨",  # Wind for Jett's speed
-        "reyna": "👁️",  # Eye for Reyna's abilities
-        "sage": "🌿",  # Plant for Sage's healing
-        "phoenix": "🔥",  # Fire for Phoenix
-        "raze": "💣",  # Explosion for Raze
-        "breach": "💥",  # Lightning for Breach
-        "omen": "🥷🏾",  # Moon for Omen's shadow
-        "brimstone": "📱",  # Diamond for Brimstone
-        "cypher": "📹",  # Camera for Cypher
-        "sova": "🏹",  # Bow for Sova
-        "killjoy": "🤖",  # Robot for Killjoy
-        "viper": "🐍",  # Toxic for Viper
-        "skye": "🦋",  # Butterfly for Skye
-        "yoru": "👤",  # Shadow figure for Yoru
-        "astra": "⭐",  # Star for Astra
-        "kayo": "🔋",  # Battery for KAY/O
-        "chamber": "🎯",  # Target for Chamber
-        "neon": "⚡",  # Lightning for Neon
-        "fade": "🐶",  # Fog for Fade
-        "harbor": "🌊",  # Wave for Harbor
-        "gekko": "🦎",  # Lizard for Gekko
-        "deadlock": "🕷️",  # Spider for Deadlock
-        "iso": "🛡️",  # Diamond for Iso
-        "clove": "🍀",  # Clover for Clove
-        "vyse": "🌵",  # Thread for Vyse
+        "jett": "💨",
+        "reyna": "👁️",
+        "sage": "🌿",
+        "phoenix": "🔥",
+        "raze": "💣",
+        "breach": "💥",
+        "omen": "🥷🏾",
+        "brimstone": "📱",
+        "cypher": "📹",
+        "sova": "🏹",
+        "killjoy": "🤖",
+        "viper": "🐍",
+        "skye": "🦋",
+        "yoru": "👤",
+        "astra": "⭐",
+        "kayo": "🔋",
+        "chamber": "🎯",
+        "neon": "⚡",
+        "fade": "🐶",
+        "harbor": "🌊",
+        "gekko": "🦎",
+        "deadlock": "🕷️",
+        "iso": "🛡️",
+        "clove": "🍀",
+        "vyse": "🌵",
         "waylay": "⚡️",
         "tejo": "🚀",
     }
@@ -252,7 +251,6 @@ def plot_players_agent_pool(matches: MatchHistory):
             )
         )
 
-        # Add agent emojis as text markers (linked to same legendgroup)
         fig.add_trace(
             go.Scatter(
                 x=player_df[x_stat],
