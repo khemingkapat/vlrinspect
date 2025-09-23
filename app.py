@@ -1,48 +1,67 @@
 import streamlit as st
-from scraper import Scraper
-import requests
-import time
+from pages import home_page, overview_page, player_page, map_page
 
-url = "https://www.vlr.gg/"
-
-st.set_page_config(layout="wide")
-st.title("Upcoming VLR Matches")
-
-
-session = requests.Session()
-session.headers.update(
-    {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+# Configure the page - do this only once at the top level
+st.set_page_config(
+    page_title="Valorant Team Comparison Dashboard",
+    page_icon="🎮",
+    layout="wide",  # This makes the app use the full width of the screen
+    initial_sidebar_state="expanded",
 )
 
-selected_link = ""
-with st.spinner("Fetching upcoming match data..."):
-    # Pass the session to the function
-    match_data = Scraper.get_upcoming_matches(session, url=url)
-    time.sleep(2)  # Add a small delay for better user experience
 
+def main():
+    # Initialize session state if not exists
+    if "team_histories" not in st.session_state:
+        st.session_state.team_histories = {}
+    if "selected_match_info" not in st.session_state:
+        st.session_state.selected_match_info = {}
+    if "selected_link" not in st.session_state:
+        st.session_state.selected_link = ""
 
-if match_data:
-    options = [f"{match['team_a']} vs. {match['team_b']}" for match in match_data]
-    link_map = {
-        f"{match['team_a']} vs. {match['team_b']}": match["link"]
-        for match in match_data
-    }
-
-    options.insert(0, "Select Your Match")  # Add a placeholder at the beginning
-
-    selected_match_name = st.selectbox(
-        "Select an upcoming match:",
-        options=options,
-        index=0,
+    # Check if we have valid data to show analysis pages
+    has_valid_data = (
+        bool(st.session_state.get("team_histories", {}))
+        and bool(st.session_state.get("selected_match_info", {}))
+        and bool(st.session_state.get("selected_link", ""))
     )
 
-if selected_match_name != "Select Your Match":
-    selected_link = link_map.get(selected_match_name, "")
-    st.info(f"Selected match link: {selected_link}")
+    if not has_valid_data:
+        # Show only the home page
+        home_page()
+    else:
+        # Define pages for navigation (excluding home since we handle it separately)
+        pages = {
+            "Analysis": [
+                st.Page(overview_page, title="Overview", icon="📊"),
+                st.Page(player_page, title="Player", icon="🚹"),
+                st.Page(map_page, title="Map", icon="🗺️"),
+            ]
+        }
 
-    Scraper.get_team_history(session, selected_link)
+        # Create navigation
+        page = st.navigation(pages)
 
-    # team1, team2 = Scraper.get_teams_from_match(session, selected_link)
-    # print(team1, team2)
-    # team1_history = Scraper.get_team_history(session, team1, head=5)
-    # Scraper.scrape_match_info(session, team1_history[0])
+        # Add sidebar info and controls
+        st.sidebar.markdown("---")
+        st.sidebar.info("Valorant Team Comparison Tool")
+
+        # Show current match info in sidebar
+        if st.session_state.get("selected_match_info"):
+            match_name = st.session_state.selected_match_info.get("match_name", "")
+            st.sidebar.success(f"Current Match: {match_name}")
+
+        # Add button to return to home page
+        if st.sidebar.button("Select New Match", type="secondary"):
+            # Clear session state and return to home
+            for key in ["team_histories", "selected_match_info", "selected_link"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+
+        # Run the selected page
+        page.run()
+
+
+if __name__ == "__main__":
+    main()
