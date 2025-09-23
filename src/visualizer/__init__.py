@@ -26,7 +26,12 @@ from .logic.map import (
     get_map_pistol_impact,
     get_players_map_agent_pool,
 )
-from .map import plot_team_pick_ban, plot_team_side_bias, plot_map_pistol_impact
+from .map import (
+    plot_team_pick_ban,
+    plot_team_side_bias,
+    plot_map_pistol_impact,
+    plot_players_map_agent_pool,
+)
 
 
 class Visualizer:
@@ -59,6 +64,7 @@ class Visualizer:
     plot_team_pick_ban = staticmethod(plot_team_pick_ban)
 
     get_players_map_agent_pool = staticmethod(get_players_map_agent_pool)
+    plot_players_map_agent_pool = staticmethod(plot_players_map_agent_pool)
 
     get_team_side_bias = staticmethod(get_team_side_bias)
     plot_team_side_bias = staticmethod(plot_team_side_bias)

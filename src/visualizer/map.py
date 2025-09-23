@@ -1,8 +1,14 @@
 from models.match_history import MatchHistory
-from .logic.map import get_team_pick_ban, get_team_side_bias, get_map_pistol_impact
+from .logic.map import (
+    get_players_map_agent_pool,
+    get_team_pick_ban,
+    get_team_side_bias,
+    get_map_pistol_impact,
+)
 from plotly.graph_objects import Figure
 import plotly.express as px
 import pandas as pd
+import plotly.graph_objects as go
 
 
 def plot_team_pick_ban(matches: MatchHistory) -> Figure:
@@ -126,6 +132,117 @@ def plot_map_pistol_impact(matches: MatchHistory) -> Figure:
         + "Rounds Won: %{customdata[1]:.0f}<br>"
         + "Total Rounds: %{customdata[0]:.0f}<br>"
         + "<extra></extra>"
+    )
+
+    return fig
+
+
+def plot_players_map_agent_pool(matches: MatchHistory):
+    players_map_agent_pool = get_players_map_agent_pool(matches)[
+        ["game_id"]
+    ].reset_index()
+
+    # Create a more focused view on agent preferences
+    players = sorted(players_map_agent_pool["name"].unique())
+    agents = sorted(players_map_agent_pool["agent"].unique())
+
+    # Enhanced labels with pick statistics
+    player_stats = (
+        players_map_agent_pool.groupby("name")
+        .agg({"game_id": ["sum", "count"], "agent": "nunique", "map": "nunique"})
+        .round(1)
+    )
+
+    player_labels = []
+    for p in players:
+        total_picks = player_stats.loc[p, ("game_id", "sum")]
+        unique_agents = player_stats.loc[p, ("agent", "nunique")]
+        player_labels.append(f"{p}\n{total_picks} picks\n{unique_agents} agents")
+
+    agent_stats = players_map_agent_pool.groupby("agent").agg(
+        {"game_id": "sum", "name": "nunique"}
+    )
+
+    agent_labels = []
+    for a in agents:
+        total_picks = agent_stats.loc[a, "game_id"]
+        players_using = agent_stats.loc[a, "name"]
+        agent_labels.append(f"{a}\n{total_picks} picks\n{players_using} players")
+
+    all_nodes = player_labels + agent_labels
+
+    # Create direct player → agent flow
+    node_dict = {}
+    for i, (original, enhanced) in enumerate(zip(players + agents, all_nodes)):
+        node_dict[original] = i
+
+    # Color nodes
+    node_colors = ["rgba(70, 130, 180, 0.8)"] * len(
+        players
+    ) + [  # Steel blue for players
+        "rgba(34, 139, 34, 0.8)"
+    ] * len(
+        agents
+    )  # Forest green for agents
+
+    sources, targets, values, link_colors, hover_labels = [], [], [], [], []
+
+    # Create player → agent direct connections
+    player_agent_picks = (
+        players_map_agent_pool.groupby(["name", "agent"])["game_id"].sum().reset_index()
+    )
+
+    for _, row in player_agent_picks.iterrows():
+        sources.append(node_dict[row["name"]])
+        targets.append(node_dict[row["agent"]])
+        values.append(row["game_id"])
+
+        # Color based on pick frequency
+        max_picks = player_agent_picks["game_id"].max()
+        intensity = 0.3 + (row["game_id"] / max_picks) * 0.5
+        link_colors.append(f"rgba(255, 99, 71, {intensity})")  # Tomato color
+
+        # Get map details for this player-agent combo
+        maps_played = players_map_agent_pool[
+            (players_map_agent_pool["name"] == row["name"])
+            & (players_map_agent_pool["agent"] == row["agent"])
+        ]["map"].tolist()
+        hover_labels.append(
+            f"{row['name']} → {row['agent']}<br>Picked {row['game_id']} times<br>Maps: {', '.join(maps_played)}"
+        )
+
+    fig = go.Figure(
+        data=[
+            go.Sankey(
+                node=dict(
+                    pad=25,
+                    thickness=30,
+                    line=dict(color="black", width=1.5),
+                    label=all_nodes,
+                    color=node_colors,
+                ),
+                link=dict(
+                    source=sources,
+                    target=targets,
+                    value=values,
+                    color=link_colors,
+                    customdata=hover_labels,
+                    hovertemplate="%{customdata}<extra></extra>",
+                ),
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title={
+            "text": "Player Agent Preferences<br><sub>Direct flow showing who prefers which agents</sub>",
+            "x": 0.5,
+            "font": {"size": 18, "color": "darkgreen"},
+        },
+        font_size=12,
+        width=1200,
+        height=700,
+        paper_bgcolor="rgba(245, 255, 245, 1)",
     )
 
     return fig

@@ -100,7 +100,6 @@ def plot_player_stat_history(
         var_name="player",
         value_name="score",
     )
-    print(melted_df)
 
     fig = px.line(
         melted_df,
