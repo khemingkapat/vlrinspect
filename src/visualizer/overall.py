@@ -59,7 +59,6 @@ def plot_team_buy_type_win_lose(matches: MatchHistory) -> Figure:
         yaxis_title_font_size=14,
         legend_title_font_size=12,
         font_size=11,
-        height=500,
         yaxis=dict(range=[0, 1], tickformat=".1%"),
         barmode="stack",
     )
@@ -110,7 +109,6 @@ def plot_team_win_condition(matches: MatchHistory) -> Figure:
 def plot_team_poistol_impact(matches: MatchHistory) -> Figure:
     team_pistol_impact = get_team_pistol_impact(matches).T
     team_pistol_impact.index.name = "round_type"
-
     df_melted = team_pistol_impact.reset_index().melt(
         id_vars="round_type",
         value_vars=["prob"],
@@ -118,10 +116,18 @@ def plot_team_poistol_impact(matches: MatchHistory) -> Figure:
         value_name="probability",
     )
 
+    # Format the round_type labels to be more readable
+    label_map = {
+        "pistol": "Pistol Round",
+        "second_round": "Second Round",
+        "2_round": "2 Round",
+    }
+    df_melted["round_type_label"] = df_melted["round_type"].map(label_map)
+
     fig = px.bar(
         df_melted,
-        x="round_type",
-        y="probability",
+        x="probability",  # Swapped: probability on x-axis
+        y="round_type_label",  # Use formatted labels
         color="round_type",
         color_discrete_map={
             "pistol": "#FF6B6B",
@@ -129,8 +135,27 @@ def plot_team_poistol_impact(matches: MatchHistory) -> Figure:
             "2_round": "#45B7D1",
         },
         title=f"{matches.full_name}'s Pistol Impact",
-        labels={"win_type": "Win Type", "probability": "Win Probability"},
+        labels={"round_type_label": "Round Type", "probability": "Win Probability"},
         hover_data={"probability": ":.2f"},
+        orientation="h",  # Horizontal orientation
+    )
+    fig.update_layout(
+        xaxis_title="Win Probability",
+        yaxis_title="Round Type",
+        margin=dict(l=120, r=100, t=60, b=40),  # Increased right margin from 80 to 100
+        height=350,
+        yaxis=dict(
+            tickmode="linear",
+            tickangle=0,
+        ),
+        showlegend=False,
+    )
+
+    fig.update_traces(
+        texttemplate="%{x:.2%}",
+        textposition="outside",
+        textfont_size=12,
+        cliponaxis=False,  # This allows text to extend beyond the plot area
     )
 
     return fig

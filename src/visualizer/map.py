@@ -239,10 +239,6 @@ def plot_players_map_agent_pool(matches: MatchHistory):
             "x": 0.5,
             "font": {"size": 18, "color": "darkgreen"},
         },
-        font_size=12,
-        width=1200,
-        height=700,
-        paper_bgcolor="rgba(245, 255, 245, 1)",
     )
 
     return fig
