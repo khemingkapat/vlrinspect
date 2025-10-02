@@ -36,7 +36,7 @@ def overview_page():
             f"{team_1_name}'s Win/Lose Probabilities by Win Condition",
             f"{team_2_name}'s Win/Lose Probabilities by Win Condition",
         ),
-        vertical_spacing=0.12,
+        vertical_spacing=0.15,
         horizontal_spacing=0.06,
         row_heights=[0.35, 0.32, 0.33],
         column_widths=[0.15, 0.35, 0.35, 0.15],
@@ -66,7 +66,7 @@ def overview_page():
     pistol_fig_2 = Visualizer.plot_team_pistol_impact(team_2_history)
     for trace in pistol_fig_2.data:
         trace.showlegend = False
-        trace.textposition = "inside"  # Add this line to fix annotation position
+        trace.textposition = "outside"  # Add this line to fix annotation position
         fig.add_trace(trace, row=1, col=4)
 
     # ========== ROW 2, COL 1-2: Team 1 Buy Type ==========
@@ -97,22 +97,22 @@ def overview_page():
 
     # ========== Update Axes ==========
     # Pistol charts
-    fig.update_xaxes(title_text="Win Probability", row=1, col=1)
-    fig.update_yaxes(title_text="", row=1, col=1)
-    fig.update_xaxes(title_text="Win Probability", autorange="reversed", row=1, col=4)
-    fig.update_yaxes(title_text="", row=1, col=4)
+    fig.update_xaxes(row=1, col=1)
+    fig.update_yaxes(row=1, col=1)
+    fig.update_xaxes(autorange="reversed", row=1, col=4)
+    fig.update_yaxes(row=1, col=4, side="right")
 
     # Buy Type charts
-    fig.update_xaxes(title_text="Buy Type", tickangle=45, row=2, col=1)
-    fig.update_yaxes(title_text="Proportion", tickformat=".0%", row=2, col=1)
-    fig.update_xaxes(title_text="Buy Type", tickangle=45, row=2, col=3)
-    fig.update_yaxes(title_text="Proportion", tickformat=".0%", row=2, col=3)
+    fig.update_xaxes(tickangle=45, row=2, col=1)
+    fig.update_yaxes(tickformat=".0%", row=2, col=1)
+    fig.update_xaxes(tickangle=45, row=2, col=3)
+    fig.update_yaxes(tickformat=".0%", row=2, col=3)
 
     # Win Condition charts
-    fig.update_xaxes(title_text="Reason", row=3, col=1)
-    fig.update_yaxes(title_text="Number of Rounds", row=3, col=1)
-    fig.update_xaxes(title_text="Reason", row=3, col=3)
-    fig.update_yaxes(title_text="Number of Rounds", row=3, col=3)
+    fig.update_xaxes(row=3, col=1)
+    fig.update_yaxes(row=3, col=1)
+    fig.update_xaxes(row=3, col=3)
+    fig.update_yaxes(row=3, col=3)
 
     # ========== Global Layout ==========
     fig.update_layout(
@@ -130,7 +130,7 @@ def overview_page():
     )
 
     # Remove all subplot titles since each chart has its own title
-    fig.for_each_annotation(lambda a: a.update(text=""))
+    # fig.for_each_annotation(lambda a: a.update(text=""))
 
     st.plotly_chart(
         fig,
