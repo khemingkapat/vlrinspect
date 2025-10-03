@@ -61,18 +61,20 @@ def plot_player_stats(
         values=stat_column,
         aggfunc="first",
     ).reset_index()
+    print(df_pivot)
 
     names = df_pivot["name"].astype(str).to_list()
 
     fig = go.Figure()
     for key, color in color_map.items():
+        if key not in df_pivot.columns:
+            continue
         r = df_pivot[key].fillna(0).to_list()
         fig.add_trace(
             go.Scatterpolar(
                 r=r,
                 theta=names,
                 name=f"{key}",
-                fill="toself",
                 line=dict(color=color),
                 marker=dict(symbol="circle"),
                 opacity=0.6,
