@@ -2,7 +2,7 @@ import requests
 from selectolax.parser import HTMLParser
 import pandas as pd
 from datetime import datetime
-from utils import detect_type, vectorized_lookup
+from src.utils import detect_type, vectorized_lookup
 from models import Match, Matches, MatchHistory, Game, Games
 from typing import Optional
 

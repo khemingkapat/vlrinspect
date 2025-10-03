@@ -1,7 +1,7 @@
 import streamlit as st
 from plotly.subplots import make_subplots
 from src.visualizer import Visualizer
-from utils import stat_cols_full
+from src.utils import stat_cols_full
 
 
 def player_page():

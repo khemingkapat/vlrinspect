@@ -1,5 +1,5 @@
 import streamlit as st
-from scraper import Scraper
+from src.scraper import Scraper
 import requests
 import time
 import re
