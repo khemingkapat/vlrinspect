@@ -14,40 +14,132 @@ import plotly.graph_objects as go
 def plot_team_pick_ban(matches: MatchHistory) -> Figure:
     team_pick_ban = get_team_pick_ban(matches).reset_index()
 
-    melted_df = team_pick_ban.melt(
-        id_vars=["map"],
-        value_vars=["pick", "ban"],
-        var_name="action",
-        value_name="count",
+    # Create figure
+    fig = go.Figure()
+
+    # Add connecting lines between pick and ban markers (bans as negative)
+    for _, row in team_pick_ban.iterrows():
+        fig.add_trace(
+            go.Scatter(
+                y=[row["pick"], -row["ban"]],
+                x=[row["map"], row["map"]],
+                mode="lines",
+                line=dict(color="#E0E0E0", width=2),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+    # Add pick markers (positive side - top)
+    fig.add_trace(
+        go.Scatter(
+            y=team_pick_ban["pick"],
+            x=team_pick_ban["map"],
+            mode="markers",
+            name="Pick",
+            marker=dict(size=14, color="#4ECDC4", line=dict(color="#3DB8B0", width=2)),
+            hovertemplate="<b>%{x}</b><br>Picks: %{y}<extra></extra>",
+        )
     )
 
-    fig = px.bar(
-        melted_df,
-        x="map",
-        y="count",
-        color="action",
-        barmode="group",
-        color_discrete_map={"ban": "#FF6B6B", "pick": "#4ECDC4"},
+    # Add ban markers (negative side - bottom, but show positive values in hover)
+    fig.add_trace(
+        go.Scatter(
+            y=-team_pick_ban["ban"],
+            x=team_pick_ban["map"],
+            mode="markers",
+            name="Ban",
+            marker=dict(size=14, color="#FF6B6B", line=dict(color="#E85555", width=2)),
+            customdata=team_pick_ban["ban"],
+            hovertemplate="<b>%{x}</b><br>Bans: %{customdata}<extra></extra>",
+        )
+    )
+
+    # Calculate max value for symmetric axis
+    max_pick = team_pick_ban["pick"].max()
+    max_ban = team_pick_ban["ban"].max()
+    max_val = max(max_pick, max_ban)
+    axis_limit = max_val + (max_val * 0.1)  # Add 10% padding
+
+    # Create custom tick values and labels (showing positive numbers on both sides)
+    tick_interval = max(1, int(axis_limit / 5))
+    tick_vals = list(range(-int(axis_limit), int(axis_limit) + 1, tick_interval))
+    tick_labels = [str(abs(val)) for val in tick_vals]
+
+    # Update layout
+    fig.update_layout(
         title=f"{matches.full_name}'s Pick and Ban Counts by Map",
-        labels={"count": "Count", "map": "Map", "action": "Action"},
+        yaxis_title="Count",
+        xaxis_title="Map",
+        hovermode="closest",
+        plot_bgcolor="white",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="#F0F0F0",
+            zeroline=True,
+            zerolinecolor="#666666",
+            zerolinewidth=2,
+            tickvals=tick_vals,
+            ticktext=tick_labels,
+            range=[-axis_limit, axis_limit],
+        ),
+        xaxis=dict(showgrid=False),
+        margin=dict(l=80, r=50, t=80, b=100),
+        # Add annotations to label the sides
+        annotations=[
+            dict(
+                y=axis_limit * 0.7,
+                x=0.5,
+                xref="paper",
+                yref="y",
+                text="Picks ↑",
+                showarrow=False,
+                font=dict(size=12, color="#4ECDC4"),
+                textangle=0,
+            ),
+            dict(
+                y=-axis_limit * 0.7,
+                x=0.5,
+                xref="paper",
+                yref="y",
+                text="↓ Bans",
+                showarrow=False,
+                font=dict(size=12, color="#FF6B6B"),
+                textangle=0,
+            ),
+        ],
     )
 
     return fig
 
 
 def plot_team_side_bias(matches: MatchHistory) -> Figure:
-    team_side_win = get_team_side_bias(matches).reset_index().sort_values("win_rate")
 
-    fig = px.bar(
-        team_side_win,
-        x="map",
-        y="win_rate",
-        color="team_side",
-        color_discrete_map={"atk": "#FF6B6B", "def": "#4ECDC4"},
-        barmode="group",
-        title=f"{matches.full_name}'s Side Bias",
-        labels={"win_rate": "Win Rate (%)", "map": "Map", "team_side": "Side"},
+    # Get the side bias data
+    team_side_win = get_team_side_bias(matches).reset_index()
+
+    # Pivot the data to have maps as rows and sides as columns
+    heatmap_data = team_side_win.pivot(
+        index="map", columns="team_side", values="win_rate"
     )
+
+    heatmap_data = heatmap_data.loc[heatmap_data.mean(axis=1).sort_values().index]
+
+    # Create the heatmap
+    fig = px.imshow(
+        heatmap_data,
+        text_auto=".2f",
+        aspect="auto",  # vertical layout
+        color_continuous_scale="Viridis",
+        labels={"x": "Side", "y": "Map", "color": "Win Rate (%)"},
+        title=f"{matches.full_name}'s Side Bias",
+    )
+
+    # Reverse Y axis so top map appears at top
+    fig.update_yaxes(autorange="reversed")
+
     return fig
 
 
