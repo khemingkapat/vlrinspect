@@ -50,15 +50,15 @@ def overview_page():
     # ========== ROW 1, COL 2: Team 1 Win/Loss Pie ==========
     winloss_fig_1 = Visualizer.plot_team_win_lose(team_1_history)
     for trace in winloss_fig_1.data:
-        trace.showlegend = True
-        trace.legendgroup = "wl"
+        # trace.showlegend = True
+        # trace.legendgroup = "wl"
         fig.add_trace(trace, row=1, col=2)
 
     # ========== ROW 1, COL 3: Team 2 Win/Loss Pie ==========
     winloss_fig_2 = Visualizer.plot_team_win_lose(team_2_history)
     for trace in winloss_fig_2.data:
-        trace.showlegend = False  # Avoid duplicate legend
-        trace.legendgroup = "wl"
+        # trace.showlegend = False  # Avoid duplicate legend
+        # trace.legendgroup = "wl"
         fig.add_trace(trace, row=1, col=3)
 
     # ========== ROW 1, COL 4: Team 2 Pistol Impact (Reversed) ==========
