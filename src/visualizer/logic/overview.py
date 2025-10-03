@@ -3,9 +3,12 @@ import pandas as pd
 
 
 def get_team_win_lose(matches: MatchHistory) -> pd.DataFrame:
-    win_lose_count = matches.matches_data["result"].value_counts().reset_index()
-    win_lose_count.columns = ["outcome", "count"]
-    return win_lose_count
+    games_data = matches.games_data
+    games_data["result"] = games_data["winner"].map(
+        lambda x: "win" if x == matches.full_name else "lose"
+    )
+    map_win_lose = games_data.groupby(["result", "map_name"]).count()
+    return map_win_lose
 
 
 def get_team_pistol_impact(matches: MatchHistory) -> pd.DataFrame:

@@ -10,16 +10,25 @@ from .logic.overview import (
 
 
 def plot_team_win_lose(matches: MatchHistory) -> Figure:
-    df = get_team_win_lose(matches)
-    fig = px.pie(
+    df = get_team_win_lose(matches).reset_index()
+
+    fig = px.sunburst(
         df,
-        names="outcome",
-        values="count",
-        title=f"{matches.full_name}'s Win/Loss Ratio",
-        hole=0.4,
-        color="outcome",
-        color_discrete_map={"win": "green", "lose": "red"},
+        path=["result", "map_name"],  # Inner = win/lose, Outer = map
+        values="winner",
+        color="result",
+        color_discrete_map={"win": "#4ECDC4", "lose": "#FF6B6B"},
+        title=f"{matches.full_name}'s Win/Lose Probabilities",
     )
+
+    fig.update_layout(
+        title_font_size=16,
+        title_x=0.5,
+        font_size=11,
+    )
+
+    fig.update_traces(textinfo="label+percent parent")
+
     return fig
 
 
