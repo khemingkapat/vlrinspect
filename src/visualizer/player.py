@@ -6,10 +6,7 @@ from .logic.player import (
     get_player_stat_history,
     get_players_agent_pool,
 )
-import pandas as pd
 import plotly.graph_objects as go
-import base64
-from pathlib import Path
 
 
 def sort_players_by_stat(df, stat, sort_by, sort_order):
@@ -33,10 +30,8 @@ def sort_players_by_stat(df, stat, sort_by, sort_order):
 
 def plot_player_stats(
     matches: MatchHistory,
-    category_type: str = "side",
+    category_type: str = "win",
     stat_column: str = "Rating 2.0",
-    sort_by: str = "mean",
-    sort_order: str = "asc",
 ) -> Figure:
     """
     Simplified function that creates a single bar chart based on parameters.
@@ -60,27 +55,34 @@ def plot_player_stats(
         color_map = {"lose": "#FF6B6B", "win": "#4ECDC4"}
         title_suffix = "Win/Lose"
 
-    player_order = sort_players_by_stat(df, stat_column, sort_by, sort_order)
-    df_sorted = df.copy()
-    df_sorted["name"] = pd.Categorical(
-        df_sorted["name"], categories=player_order, ordered=True
-    )
-    df_sorted = df_sorted.sort_values("name")
+    df_pivot = df.pivot_table(
+        index="name",
+        columns="cat",
+        values=stat_column,
+        aggfunc="first",
+    ).reset_index()
 
-    fig = px.bar(
-        df_sorted,
-        x=stat_column,
-        y="name",
-        color="cat",
-        barmode="group",
-        title=f"{matches.full_name}'s Player Comparison - {stat_column} ({title_suffix}, sorted by {sort_by})",
-        labels={"name": "Player", "cat": "Category"},
-        color_discrete_map=color_map,
-        hover_data={"name": True, "cat": True, stat_column: ":.2f"},
-        orientation="h",
-    )
+    names = df_pivot["name"].astype(str).to_list()
 
-    fig.update_layout(height=500, margin=dict(t=80, b=50, l=50, r=50))
+    fig = go.Figure()
+    for key, color in color_map.items():
+        r = df_pivot[key].fillna(0).to_list()
+        fig.add_trace(
+            go.Scatterpolar(
+                r=r,
+                theta=names,
+                name=f"{key}",
+                fill="toself",
+                line=dict(color=color),
+                marker=dict(symbol="circle"),
+                opacity=0.6,
+            )
+        )
+
+    fig.update_layout(
+        title=f"{matches.full_name}'s Player Stat ({stat_column}) - {title_suffix}",
+        polar=dict(radialaxis=dict(visible=True)),
+    )
 
     return fig
 
@@ -90,13 +92,15 @@ def plot_player_stat_history(
 ) -> Figure:
     player_stat_history = get_player_stat_history(matches, stat_column)
     names = player_stat_history.columns
-
     df_reset = player_stat_history.reset_index()
     df_reset["game_index"] = range(len(df_reset))
 
+    # Calculate mean across all players for each game
+    df_reset["Average"] = df_reset[names].mean(axis=1)
+
     melted_df = df_reset.melt(
         id_vars=["game_id", "game_index"],
-        value_vars=names,
+        value_vars=list(names) + ["Average"],
         var_name="player",
         value_name="score",
     )
@@ -106,10 +110,17 @@ def plot_player_stat_history(
         x="game_index",
         y="score",
         color="player",
-        title="Player Performance Across Games",
+        title=f"{matches.full_name}'s Players Performance Across Games",
         labels={"score": "Performance Score", "game_index": "Game Sequence"},
         markers=True,
-        color_discrete_sequence=["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FECA57"],
+        color_discrete_sequence=[
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+        ],
     )
 
     fig.update_layout(
@@ -119,8 +130,8 @@ def plot_player_stat_history(
         hovermode="x unified",
         xaxis=dict(
             tickmode="array",
-            tickvals=list(range(len(df_reset))),  # All positions
-            ticktext=[str(gid) for gid in df_reset["game_id"]],  # All game_ids
+            tickvals=list(range(len(df_reset))),
+            ticktext=[str(gid) for gid in df_reset["game_id"]],
             tickangle=45,
         ),
     )
@@ -130,11 +141,19 @@ def plot_player_stat_history(
         hovertemplate="<b>%{fullData.name}</b><br>"
         + "Game ID: %{customdata[0]}<br>"
         + "Value: %{y:.2f}<extra></extra>",
+        selector=dict(mode="lines+markers"),  # Only update player traces
+    )
+
+    fig.update_traces(
+        line=dict(width=6, dash="dash"),
+        marker=dict(size=10),
+        selector=dict(name="average"),
     )
 
     for trace in fig.data:
-        player_data = melted_df[melted_df["player"] == trace.name]
-        trace.customdata = player_data[["game_id"]].values
+        if trace.name != "Team Average":  # Skip the mean line
+            player_data = melted_df[melted_df["player"] == trace.name]
+            trace.customdata = player_data[["game_id"]].values
 
     return fig
 
@@ -199,8 +218,8 @@ def plot_players_agent_pool(matches: MatchHistory):
     max_games = player_agent_pool["game_id"].max()
 
     # Define size range (minimum and maximum bubble sizes)
-    min_size = 50  # Minimum bubble size
-    max_size = 100  # Maximum bubble size
+    min_size = 10  # Minimum bubble size
+    max_size = 50  # Maximum bubble size
 
     # Function to scale bubble sizes with less drastic differences
     def scale_bubble_size(game_count):
@@ -214,9 +233,9 @@ def plot_players_agent_pool(matches: MatchHistory):
     # Function to scale emoji text size
     def scale_emoji_size(game_count):
         if max_games == min_games:
-            return 25
+            return 10
         normalized = (game_count - min_games) / (max_games - min_games)
-        return int(20 + (40 - 20) * (normalized**0.5))  # Scale from 20 to 40
+        return int(10 + (30 - 10) * (normalized**0.5))  # Scale from 20 to 40
 
     # Group data by player for a cleaner legend
     for player_name in player_agent_pool.name.unique():
