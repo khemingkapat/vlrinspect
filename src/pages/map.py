@@ -1,5 +1,5 @@
 import streamlit as st
-from visualizer import Visualizer
+from src.visualizer import Visualizer
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
