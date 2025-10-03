@@ -44,3 +44,22 @@ def detect_type(value: str):
         return int(value.replace("%", "")) / 100
 
     return value
+
+
+stat_cols = {
+    "r2.0": "Rating 2.0",
+    "acs": "ACS",
+    "k": "Kill",
+    "d": "Death",
+    "a": "Assist",
+    "+/–": "KD Diff",
+    "kast": "KAST",
+    "adr": "ADR",
+    "hs%": "Headshot %",
+    "fk": "First Kill",
+    "fd": "First Death",
+    "f+/–": "FKD Diff",
+}
+
+stat_cols_full = list(stat_cols.values())
+stat_cols_short = list(stat_cols.keys())
