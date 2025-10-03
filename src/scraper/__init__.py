@@ -1,4 +1,4 @@
-from scraper.history import (
+from src.scraper.history import (
     get_team_history_list,
     scrape_matches,
     scrape_match_info,
@@ -6,8 +6,8 @@ from scraper.history import (
     extract_round_result_from_html,
     extract_economy_from_html,
 )
-from .team import get_teams_from_match
-from .upcoming import get_upcoming_matches
+from src.scraper.team import get_teams_from_match
+from src.scraper.upcoming import get_upcoming_matches
 import requests
 
 
