@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent / "src"))
+
 import streamlit as st
 from pages import home_page, overview_page, player_page, map_page
 
