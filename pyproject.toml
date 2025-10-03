@@ -17,8 +17,6 @@ dependencies = [
     "streamlit>=1.48.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
