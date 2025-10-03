@@ -20,3 +20,14 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = [
+    "assets",
+    "models",
+    "pages",
+    "scraper",
+    "utils",
+    "visualizer",
+]
+
