@@ -1,4 +1,4 @@
-from models.match_history import MatchHistory
+from src.models.match_history import MatchHistory
 from .logic.map import (
     get_players_map_agent_pool,
     get_team_pick_ban,

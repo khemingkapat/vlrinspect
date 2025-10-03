@@ -1,4 +1,4 @@
-from models import MatchHistory
+from src.models import MatchHistory
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 

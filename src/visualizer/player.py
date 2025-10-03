@@ -1,4 +1,4 @@
-from models import MatchHistory
+from src.models import MatchHistory
 from plotly.graph_objects import Figure
 import plotly.express as px
 from .logic.player import (

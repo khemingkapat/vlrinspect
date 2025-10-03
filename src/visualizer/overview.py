@@ -1,6 +1,6 @@
 import plotly.express as px
 from plotly.graph_objects import Figure
-from models import MatchHistory
+from src.models import MatchHistory
 from .logic.overview import (
     get_team_buy_type_win_lose,
     get_team_win_condition,
