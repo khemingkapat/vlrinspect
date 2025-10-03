@@ -1,4 +1,4 @@
-from .logic.overall import (
+from .logic.overview import (
     get_team_pistol_impact,
     get_team_win_lose,
     get_team_buy_type_win_lose,
@@ -11,7 +11,7 @@ from .logic.player import (
     get_player_stat_history,
 )
 
-from .overall import (
+from .overview import (
     plot_team_win_condition,
     plot_team_win_lose,
     plot_team_buy_type_win_lose,
